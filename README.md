@@ -71,6 +71,18 @@ npm run build   # 产出 dist/ 目录，可直接托管
 - **暗色模式** — 跟随系统偏好，手动切换
 - **离线可用** — PWA 就绪，数据存储在浏览器本地
 
+## Figma Plugin
+
+**[packages/figma-plugin](./packages/figma-plugin/)** — 将 CSS Visual Toolbox 作为 Figma 插件使用，直接在画布上应用样式到选中图层。
+
+```bash
+cd packages/figma-plugin
+npm install --legacy-peer-deps
+npm run build
+# 然后在 Figma 中 Plugins → Development → Import plugin from manifest
+# 选择 packages/figma-plugin/manifest.json
+```
+
 ## Tech Stack
 
 React 19 + TypeScript + Vite + Tailwind CSS v4 + React Router

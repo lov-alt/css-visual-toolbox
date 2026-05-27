@@ -1,0 +1,27 @@
+{
+  "name": "css-visual-toolbox-figma",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build:ui && npm run build:code",
+    "build:ui": "vite build",
+    "build:code": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2020 --format=iife",
+    "build": "npm run build:ui && npm run build:code"
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "esbuild": "0.25.12",
+    "tailwindcss": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12"
+  }
+}
