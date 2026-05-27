@@ -57,6 +57,10 @@ CSS Visual Toolbox 把这一切变成**拖拽滑块、拾取颜色、实时看�
 - 上传本地图片 → 裁剪区域聚光灯高亮 → 外围暗化
 - 内置山水风景占位图
 
+<p align="center">
+  <img src="docs/preview-clip-path.svg" alt="Clip Path tool preview" width="100%" />
+</p>
+
 ### Gradient
 
 线性 / 径向 / 锥形三种渐变类型：
@@ -65,6 +69,10 @@ CSS Visual Toolbox 把这一切变成**拖拽滑块、拾取颜色、实时看�
 - 拾色器直接取色，最多 8 个色标
 - 上传图片后自动启用 `background-blend-mode: soft-light` 混合
 - 角度 0–360deg 精确控制
+
+<p align="center">
+  <img src="docs/preview-gradient.svg" alt="Gradient tool preview" width="100%" />
+</p>
 
 ### Box Shadow
 
@@ -77,6 +85,10 @@ CSS Visual Toolbox 把这一切变成**拖拽滑块、拾取颜色、实时看�
 | 颜色 + 透明度 | 拾色器 + 不透明度滑块，实时预览 RGBA 值 |
 | inset 开关 | 内阴影 / 外阴影一键切换 |
 
+<p align="center">
+  <img src="docs/preview-shadow.svg" alt="Box Shadow tool preview" width="100%" />
+</p>
+
 ### Border Radius
 
 圆角可视化编辑器：
@@ -85,6 +97,10 @@ CSS Visual Toolbox 把这一切变成**拖拽滑块、拾取颜色、实时看�
 - **独立模式** — 左上/右上/右下/左下分别设置
 - px / % 单位自由切换
 - 图片上传后直接看照片圆角效果
+
+<p align="center">
+  <img src="docs/preview-radius.svg" alt="Border Radius tool preview" width="100%" />
+</p>
 
 ---
 
