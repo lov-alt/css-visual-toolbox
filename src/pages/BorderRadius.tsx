@@ -16,7 +16,7 @@ type CornerMode = "symmetric" | "independent";
 
 interface Corners { tl: number; tr: number; br: number; bl: number }
 
-const ALL_FW: Framework[] = ["css", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
+const ALL_FW: Framework[] = ["css", "json", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
 
 const CORNER_DEFS: { key: keyof Corners; labelKey: "topLeft" | "topRight" | "bottomRight" | "bottomLeft" }[] = [
   { key: "tl", labelKey: "topLeft" },

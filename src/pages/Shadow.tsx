@@ -17,7 +17,7 @@ interface ShadowLayer {
 
 const MAX_LAYERS = 6;
 const MIN_LAYERS = 1;
-const ALL_FW: Framework[] = ["css", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
+const ALL_FW: Framework[] = ["css", "json", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
 
 const NEUMORPH_PRESETS: Record<string, { bg: string; box: string; layers: Omit<ShadowLayer, "id">[] }> = {
   "Flat Raise": {

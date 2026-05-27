@@ -23,7 +23,7 @@ const TYPE_OPTIONS: { value: GradientType; label: string }[] = [
 
 const MAX_STOPS = 8;
 const MIN_STOPS = 2;
-const ALL_FW: Framework[] = ["css", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
+const ALL_FW: Framework[] = ["css", "json", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
 
 export default function Gradient() {
   const { t } = useI18n();

@@ -13,6 +13,7 @@ const RULES: [RegExp, string][] = [
   [/\b(style|className|div|template|script|RoundedRectangle|Circle|Ellipse|LinearGradient|RadialGradient|Color|Container|BoxDecoration|BoxShadow|ClipOval|ClipRRect|BorderRadius|ClipPath|Offset|fromRGBO)\b/g, "text-purple-300"],
   [/\b(clip-path|border-radius|box-shadow|background|cubic-bezier|transform|linear-gradient|radial-gradient|conic-gradient|inset|polygon|circle|ellipse)\b/g, "text-sky-300"],
   [/\b(cornerRadius|clipShape|shadow|blurRadius|spreadRadius|borderRadius|topLeftRadius|startPoint|endPoint|bottomTrailing|topLeading)\b/g, "text-sky-300"],
+  [/"([^"]+)":/g, "text-sky-300"],
 ];
 
 export default function SyntaxHighlight({ code }: { code: string }) {

@@ -40,7 +40,7 @@ const PRESETS: Record<string, Point[]> = {
 const MAX_PTS = 12;
 const MIN_PTS = 3;
 
-const ALL_FW: Framework[] = ["css", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
+const ALL_FW: Framework[] = ["css", "json", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
 
 export default function ClipPath() {
   const { t } = useI18n();

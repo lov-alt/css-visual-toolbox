@@ -111,7 +111,7 @@ CSS Visual Toolbox 把这一切变成**拖拽滑块、拾取颜色、实时看�
 | **实时预览** | 所有参数即时反映，所见即所得 |
 | **图片上传** | 拖拽或点击上传 PNG / JPG / WebP / SVG，直接在照片上预览效果 |
 | **内置占位图** | 3 张专业 SVG 占位图（山水风景、抽象圆环、圆点纹理），不上传也有内容 |
-| **7 框架导出** | CSS · Tailwind · React · Vue · Svelte · SwiftUI · Flutter |
+| **8 框架导出** | CSS · Tailwind · React · Vue · Svelte · SwiftUI · Flutter |
 | **语法高亮** | Token 级着色 — CSS 属性蓝色、值绿色、数字琥珀色、hex 色值玫瑰色 |
 | **行号 + 窗口装饰** | 代码面板左侧行号，顶部 macOS 风格红黄绿圆点 |
 | **可折叠面板** | 代码默认隐藏，点 ⌄ 展开 — 工具回归编辑器体验 |

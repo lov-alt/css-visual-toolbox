@@ -1,7 +1,8 @@
-export type Framework = "css" | "tailwind" | "react" | "vue" | "svelte" | "swiftui" | "flutter";
+export type Framework = "css" | "tailwind" | "react" | "vue" | "svelte" | "swiftui" | "flutter" | "json";
 
 export const FRAMEWORKS: { key: Framework; label: string }[] = [
   { key: "css", label: "CSS" },
+  { key: "json", label: "JSON" },
   { key: "tailwind", label: "Tailwind" },
   { key: "react", label: "React" },
   { key: "vue", label: "Vue" },
@@ -130,10 +131,27 @@ const genFlutter: GenFn = (prop, val) => {
   }
 };
 
+/* ── JSON ─────────────────────────────── */
+
+const genJSON: GenFn = (prop, val) => {
+  const camel = toCamel(prop);
+  const obj: Record<string, string | number> = { property: prop };
+  obj[camel] = val;
+
+  // Parse numeric values
+  const numMatch = val.match(/^([\d.]+)(px|%)?/);
+  if (numMatch) {
+    obj[camel] = val;
+  }
+
+  return JSON.stringify(obj, null, 2);
+};
+
 /* ── Aggregator ──────────────────────── */
 
 const generators: Record<Framework, GenFn> = {
   css: genCSS,
+  json: genJSON,
   tailwind: genTailwind,
   react: genReact,
   vue: genVue,
