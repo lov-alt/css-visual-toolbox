@@ -12,7 +12,18 @@ type Message =
   | { type: "BOX_SHADOW"; value: string }
   | { type: "BORDER_RADIUS"; value: string };
 
-/* ── Message Router ──────────────────── */
+type AnySceneNode = SceneNode & Record<string, any>;
+
+/* ── Regex ───────────────────────────── */
+
+const RE_GRADIENT = /(linear|radial)-gradient\(\s*(?:from\s+(\d+)deg\s*,)?\s*(.+?)\s*\)/;
+const RE_SHADOW = /(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(#[0-9a-fA-F]+)/;
+const RE_POLYGON = /polygon\(([^)]+)\)/;
+const RE_POINT = /([\d.]+)%\s+([\d.]+)%/;
+const RE_CIRCLE = /circle\((\d+)%\s*at\s*(\d+)%\s*(\d+)%\)/;
+const RE_ELLIPSE = /ellipse\((\d+)%\s+(\d+)%\s*at\s*(\d+)%\s*(\d+)%\)/;
+
+/* ── Router ──────────────────────────── */
 
 figma.ui.onmessage = (msg: Message) => {
   const sel = figma.currentPage.selection;
@@ -22,103 +33,92 @@ figma.ui.onmessage = (msg: Message) => {
   }
 
   switch (msg.type) {
-    case "BORDER_RADIUS":
-      applyBorderRadius(sel, msg.value);
-      break;
-    case "GRADIENT":
-      applyGradient(sel, msg.value);
-      break;
-    case "BOX_SHADOW":
-      applyShadow(sel, msg.value);
-      break;
-    case "CLIP_PATH":
-      applyClipPath(sel, msg.value);
-      break;
+    case "BORDER_RADIUS": applyRadius(sel, msg.value); break;
+    case "GRADIENT": applyGradient(sel, msg.value); break;
+    case "BOX_SHADOW": applyShadow(sel, msg.value); break;
+    case "CLIP_PATH": applyClip(sel, msg.value); break;
   }
 };
 
 /* ── Border Radius ──────────────────── */
 
-function applyBorderRadius(nodes: readonly SceneNode[], value: string) {
+function applyRadius(nodes: readonly SceneNode[], value: string) {
   const parts = value.split(/[ ,]+/).map(Number);
-  const radii = parts.length === 1
-    ? [parts[0], parts[0], parts[0], parts[0]] as const
-    : [parts[0], parts[1], parts[2], parts[3]] as const;
+  const [tl, tr, br, bl] = parts.length === 1
+    ? [parts[0], parts[0], parts[0], parts[0]]
+    : [parts[0], parts[1], parts[2], parts[3]];
 
   let count = 0;
   for (const node of nodes) {
-    if (!("cornerRadius" in node)) continue;
+    const n = node as AnySceneNode;
+    if (n.cornerRadius === undefined) continue;
 
-    if (radii[0] === radii[1] && radii[1] === radii[2] && radii[2] === radii[3]) {
-      node.cornerRadius = radii[0];
+    if (tl === tr && tr === br && br === bl) {
+      (n as any).cornerRadius = tl;
     } else {
-      node.topLeftRadius = radii[0];
-      node.topRightRadius = radii[1];
-      node.bottomRightRadius = radii[2];
-      node.bottomLeftRadius = radii[3];
+      (n as any).topLeftRadius = tl;
+      (n as any).topRightRadius = tr;
+      (n as any).bottomRightRadius = br;
+      (n as any).bottomLeftRadius = bl;
     }
     count++;
   }
-  figma.notify(`✓ Border radius applied to ${count} layer(s)`);
+
+  if (count > 0) figma.notify(`Radius → ${count} layer(s)`);
 }
 
-/* ── Gradient ───────────────────────── */
+/* ── Gradient ────────────────────────── */
 
 function applyGradient(nodes: readonly SceneNode[], css: string) {
-  const match = css.match(
-    /(linear|radial|conic)-gradient\(\s*(?:from\s+(\d+)deg\s*,)?\s*(.+?)\s*\)/
-  );
+  const match = css.match(RE_GRADIENT);
   if (!match) {
     figma.notify("Could not parse gradient", { error: true });
     return;
   }
 
   const [, type, angleStr, stopsStr] = match;
-  const angle = parseInt(angleStr || "180", 10) - 90;
+  const deg = parseInt(angleStr || "180", 10) - 90;
   const stops = stopsStr
     .split(",")
     .map((s) => s.trim().match(/(#[0-9a-fA-F]+)\s+(\d+)%/))
-    .filter(Boolean) as RegExpMatchArray[];
+    .filter((m): m is RegExpMatchArray => m !== null);
 
   if (stops.length < 2) {
     figma.notify("Need at least 2 color stops", { error: true });
     return;
   }
 
-  const gradientStops: GradientStop[] = stops.map((m) => ({
+  const gradientStops = stops.map((m) => ({
     color: hexToRgba(m[1]),
     position: Number(m[2]) / 100,
   }));
 
-  const radians = (angle * Math.PI) / 180;
-  const gradientTransform: Transform = [
-    [Math.cos(radians), Math.sin(radians), 0.5 - Math.cos(radians) / 2 - Math.sin(radians) / 2],
-    [-Math.sin(radians), Math.cos(radians), 0.5 + Math.sin(radians) / 2 - Math.cos(radians) / 2],
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const transform: Transform = [
+    [cos, sin, 0.5 - cos / 2 - sin / 2],
+    [-sin, cos, 0.5 + sin / 2 - cos / 2],
   ];
 
   let count = 0;
   for (const node of nodes) {
-    if (!("fills" in node)) continue;
+    const n = node as AnySceneNode;
+    if (!n.fills) continue;
 
-    const fill: GradientPaint = {
-      type: type === "radial" ? "GRADIENT_RADIAL" : "GRADIENT_LINEAR",
-      gradientStops,
-      gradientTransform,
-    };
+    const paintType = type === "radial" ? "GRADIENT_RADIAL" : "GRADIENT_LINEAR";
 
-    if (Array.isArray(node.fills) && node.fills.length > 0) {
-      const existing = [...node.fills] as Paint[];
-      existing[0] = fill;
-      node.fills = existing;
-    } else {
-      node.fills = [fill];
-    }
+    const existing = Array.isArray(n.fills) ? [...(n.fills as Paint[])] : [];
+    existing[0] = { type: paintType, gradientStops, gradientTransform: transform } as GradientPaint;
+    n.fills = existing;
     count++;
   }
-  figma.notify(`✓ ${type} gradient applied to ${count} layer(s)`);
+
+  if (count > 0) figma.notify(`${type} gradient → ${count} layer(s)`);
 }
 
-/* ── Box Shadow ─────────────────────── */
+/* ── Box Shadow ──────────────────────── */
 
 function applyShadow(nodes: readonly SceneNode[], css: string) {
   const shadows = css
@@ -129,11 +129,9 @@ function applyShadow(nodes: readonly SceneNode[], css: string) {
   const effects: Effect[] = [];
 
   for (const shadow of shadows) {
-    const inset = shadow.includes("inset");
-    const cleaned = shadow.replace("inset", "").trim();
-    const parts = cleaned.match(
-      /(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(#[0-9a-fA-F]+)/
-    );
+    const inset = shadow.startsWith("inset");
+    const cleaned = inset ? shadow.slice(5).trim() : shadow;
+    const parts = cleaned.match(RE_SHADOW);
     if (!parts) continue;
 
     const [, x, y, blur, spread, color] = parts;
@@ -156,97 +154,143 @@ function applyShadow(nodes: readonly SceneNode[], css: string) {
 
   let count = 0;
   for (const node of nodes) {
-    if (!("effects" in node)) continue;
-    node.effects = effects;
+    const n = node as AnySceneNode;
+    if (!n.effects) continue;
+    n.effects = effects;
     count++;
   }
-  figma.notify(`✓ Shadow applied to ${count} layer(s)`);
+
+  if (count > 0) figma.notify(`Shadow → ${count} layer(s)`);
 }
 
-/* ── Clip Path ──────────────────────── */
+/* ── Clip Path ───────────────────────── */
 
-function applyClipPath(nodes: readonly SceneNode[], css: string) {
+function applyClip(nodes: readonly SceneNode[], css: string) {
   for (const node of nodes) {
-    if (!("resize" in node) || !("fills" in node)) continue;
+    const n = node as AnySceneNode;
+    if (!n.resize || !n.fills) continue;
 
-    const w = (node as any).width as number;
-    const h = (node as any).height as number;
+    const w: number = n.width;
+    const h: number = n.height;
+    const fills: Paint[] = Array.isArray(n.fills) ? [...(n.fills as Paint[])] : [];
 
-    // polygon(...)
-    const polygonMatch = css.match(/polygon\(([^)]+)\)/);
-    if (polygonMatch) {
-      const points = polygonMatch[1]
-        .split(",")
-        .map((p) => p.trim().match(/([\d.]+)%\s+([\d.]+)%/))
-        .filter(Boolean)
-        .map((m) => [((Number(m![1]) / 100) * w).toFixed(1), ((Number(m![2]) / 100) * h).toFixed(1)])
-        .map(([x, y]) => ({ x: Number(x), y: Number(y) }));
+    if (clipPolygon(n, css, w, h, fills)) return;
+    if (clipCircle(n, css, w, h, fills)) return;
+    if (clipEllipse(n, css, w, h, fills)) return;
 
-      if (points.length >= 3) {
-        const poly = figma.createPolygon();
-        poly.pointCount = points.length;
-        poly.vertexList = points;
-        poly.x = node.x;
-        poly.y = node.y;
-        poly.resize(w, h);
-        poly.fills = Array.isArray(node.fills) ? [...node.fills] as Paint[] : [];
-        figma.currentPage.appendChild(poly);
-        node.remove();
-        figma.notify("✓ Converted polygon shape");
-      }
-      return;
-    }
-
-    // circle(...)
-    const circleMatch = css.match(/circle\((\d+)%\s*at\s*(\d+)%\s*(\d+)%\)/);
-    if (circleMatch) {
-      const [, r, cx, cy] = circleMatch.map(Number);
-      const ellipse = figma.createEllipse();
-      ellipse.x = node.x + (cx / 100) * w - ((r / 100) * w) / 2;
-      ellipse.y = node.y + (cy / 100) * h - ((r / 100) * h) / 2;
-      ellipse.resize((r / 100) * w, (r / 100) * h);
-      ellipse.fills = Array.isArray(node.fills) ? [...node.fills] as Paint[] : [];
-      figma.currentPage.appendChild(ellipse);
-      node.remove();
-      figma.notify("✓ Converted circle shape");
-      return;
-    }
-
-    // ellipse(...)
-    const ellipseMatch = css.match(/ellipse\((\d+)%\s+(\d+)%\s*at\s*(\d+)%\s*(\d+)%\)/);
-    if (ellipseMatch) {
-      const [, rx, ry, cx, cy] = ellipseMatch.map(Number);
-      const el = figma.createEllipse();
-      el.x = node.x + (cx / 100) * w - ((rx / 100) * w) / 2;
-      el.y = node.y + (cy / 100) * h - ((ry / 100) * h) / 2;
-      el.resize((rx / 100) * w, (ry / 100) * h);
-      el.fills = Array.isArray(node.fills) ? [...node.fills] as Paint[] : [];
-      figma.currentPage.appendChild(el);
-      node.remove();
-      figma.notify("✓ Converted ellipse shape");
-      return;
-    }
-
-    figma.notify("Clip-path type not yet supported in Figma", { error: true });
+    figma.notify("Clip-path type not yet supported", { error: true });
   }
 }
 
-/* ── Helpers ─────────────────────────── */
+function clipPolygon(
+  node: AnySceneNode,
+  css: string,
+  w: number,
+  h: number,
+  fills: Paint[],
+): boolean {
+  const match = css.match(RE_POLYGON);
+  if (!match) return false;
+
+  const points = match[1]
+    .split(",")
+    .map((p) => p.trim().match(RE_POINT))
+    .filter((m): m is RegExpMatchArray => m !== null)
+    .map((m) => ({
+      x: round((Number(m[1]) / 100) * w, 1),
+      y: round((Number(m[2]) / 100) * h, 1),
+    }));
+
+  if (points.length < 3) return false;
+
+  const poly = figma.createPolygon();
+  const pn = poly as AnySceneNode;
+  pn.pointCount = points.length;
+  pn.x = node.x;
+  pn.y = node.y;
+  pn.resize(w, h);
+  pn.fills = fills;
+  // Set vertex positions via vector network
+  if (pn.vectorNetwork) {
+    const vertices = points.map((p) => ({ x: p.x, y: p.y, strokeCap: "NONE" as const, strokeJoin: "MITER" as const, cornerRadius: 0, handleMirroring: "NONE" as const }));
+    (pn as any).vectorNetwork = { vertices, segments: vertices.map((_: any, i: number) => ({ start: i, end: (i + 1) % vertices.length, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } })), regions: [{ windingRule: "NONZERO" as const, loops: [vertices.map((_, i) => i)] }] };
+  }
+  figma.currentPage.appendChild(poly);
+  node.remove();
+  figma.notify("Polygon shape created");
+  return true;
+}
+
+function clipCircle(
+  node: AnySceneNode,
+  css: string,
+  w: number,
+  h: number,
+  fills: Paint[],
+): boolean {
+  const match = css.match(RE_CIRCLE);
+  if (!match) return false;
+
+  const [, r, cx, cy] = match.map(Number);
+  const d = (r / 100) * Math.min(w, h);
+  const el = figma.createEllipse();
+  const en = el as AnySceneNode;
+  en.x = node.x + ((cx / 100) * w - d / 2);
+  en.y = node.y + ((cy / 100) * h - d / 2);
+  en.resize(d, d);
+  en.fills = fills;
+  figma.currentPage.appendChild(el);
+  node.remove();
+  figma.notify("Circle shape created");
+  return true;
+}
+
+function clipEllipse(
+  node: AnySceneNode,
+  css: string,
+  w: number,
+  h: number,
+  fills: Paint[],
+): boolean {
+  const match = css.match(RE_ELLIPSE);
+  if (!match) return false;
+
+  const [, rx, ry, cx, cy] = match.map(Number);
+  const ew = (rx / 100) * w;
+  const eh = (ry / 100) * h;
+  const el = figma.createEllipse();
+  const en = el as AnySceneNode;
+  en.x = node.x + ((cx / 100) * w - ew / 2);
+  en.y = node.y + ((cy / 100) * h - eh / 2);
+  en.resize(ew, eh);
+  en.fills = fills;
+  figma.currentPage.appendChild(el);
+  node.remove();
+  figma.notify("Ellipse shape created");
+  return true;
+}
+
+/* ── Color ───────────────────────────── */
 
 function hexToRgba(hex: string): RGBA {
-  hex = hex.replace("#", "");
-  if (hex.length === 8) {
-    return {
-      r: parseInt(hex.slice(0, 2), 16) / 255,
-      g: parseInt(hex.slice(2, 4), 16) / 255,
-      b: parseInt(hex.slice(4, 6), 16) / 255,
-      a: parseInt(hex.slice(6, 8), 16) / 255,
-    };
+  const h = hex.replace("#", "");
+
+  if (h.length === 3) {
+    const [r, g, b] = h.split("").map((c) => parseInt(c + c, 16));
+    return { r: r / 255, g: g / 255, b: b / 255, a: 1 };
   }
+
   return {
-    r: parseInt(hex.slice(0, 2), 16) / 255,
-    g: parseInt(hex.slice(2, 4), 16) / 255,
-    b: parseInt(hex.slice(4, 6), 16) / 255,
-    a: 1,
+    r: parseInt(h.slice(0, 2), 16) / 255,
+    g: parseInt(h.slice(2, 4), 16) / 255,
+    b: parseInt(h.slice(4, 6), 16) / 255,
+    a: h.length >= 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1,
   };
+}
+
+/* ── Math ────────────────────────────── */
+
+function round(v: number, d: number): number {
+  const f = 10 ** d;
+  return Math.round(v * f) / f;
 }
