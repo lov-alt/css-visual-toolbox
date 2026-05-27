@@ -10,7 +10,7 @@ interface Props {
 export default function CodePreview({ codeMap }: Props) {
   const { t } = useI18n();
   const [format, setFormat] = useState<Framework>("css");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const code = codeMap[format] ?? "";
