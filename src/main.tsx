@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { createRoot } from "react-dom/client";
+import { I18nProvider } from "./i18n/index";
 import "./index.css";
 import App from "./App";
 import Home from "./pages/Home";
@@ -23,5 +24,7 @@ const router = createBrowserRouter([
 ]);
 
 createRoot(document.getElementById("root")!).render(
-  <RouterProvider router={router} />
+  <I18nProvider>
+    <RouterProvider router={router} />
+  </I18nProvider>
 );

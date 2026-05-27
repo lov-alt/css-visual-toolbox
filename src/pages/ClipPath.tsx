@@ -4,28 +4,18 @@ import CodePreview from "../components/CodePreview";
 import Slider from "../components/Slider";
 import SegmentedControl from "../components/SegmentedControl";
 import SectionLabel from "../components/SectionLabel";
+import { useI18n } from "../i18n/index";
+import { generateCode, type Framework } from "../generators/index";
 
 type ShapeType = "polygon" | "circle" | "ellipse" | "inset";
 
-interface Point {
-  x: number;
-  y: number;
-}
+interface Point { x: number; y: number }
 
-const SHAPE_OPTIONS: { value: ShapeType; label: string }[] = [
-  { value: "polygon", label: "Polygon" },
-  { value: "circle", label: "Circle" },
-  { value: "ellipse", label: "Ellipse" },
-  { value: "inset", label: "Inset" },
-];
+const SHAPE_OPTIONS = ["polygon", "circle", "ellipse", "inset"] as const;
 
 const PRESETS: Record<string, Point[]> = {
-  triangle: [
-    { x: 50, y: 5 }, { x: 95, y: 90 }, { x: 5, y: 90 },
-  ],
-  rhombus: [
-    { x: 50, y: 5 }, { x: 95, y: 50 }, { x: 50, y: 95 }, { x: 5, y: 50 },
-  ],
+  triangle: [{ x: 50, y: 5 }, { x: 95, y: 90 }, { x: 5, y: 90 }],
+  rhombus: [{ x: 50, y: 5 }, { x: 95, y: 50 }, { x: 50, y: 95 }, { x: 5, y: 50 }],
   pentagon: [
     { x: 50, y: 3 }, { x: 95, y: 35 }, { x: 78, y: 92 }, { x: 22, y: 92 }, { x: 5, y: 35 },
   ],
@@ -33,31 +23,35 @@ const PRESETS: Record<string, Point[]> = {
     { x: 50, y: 3 }, { x: 93, y: 25 }, { x: 93, y: 75 }, { x: 50, y: 97 }, { x: 7, y: 75 }, { x: 7, y: 25 },
   ],
   star: [
-    { x: 50, y: 3 }, { x: 61, y: 35 }, { x: 95, y: 35 }, { x: 68, y: 55 }, { x: 78, y: 92 },
-    { x: 50, y: 68 }, { x: 22, y: 92 }, { x: 32, y: 55 }, { x: 5, y: 35 }, { x: 39, y: 35 },
+    { x: 50, y: 3 }, { x: 61, y: 35 }, { x: 95, y: 35 }, { x: 68, y: 55 },
+    { x: 78, y: 92 }, { x: 50, y: 68 }, { x: 22, y: 92 }, { x: 32, y: 55 },
+    { x: 5, y: 35 }, { x: 39, y: 35 },
   ],
   arrow: [
-    { x: 20, y: 30 }, { x: 60, y: 30 }, { x: 60, y: 5 }, { x: 95, y: 50 },
-    { x: 60, y: 95 }, { x: 60, y: 70 }, { x: 20, y: 70 },
+    { x: 20, y: 30 }, { x: 60, y: 30 }, { x: 60, y: 5 },
+    { x: 95, y: 50 }, { x: 60, y: 95 }, { x: 60, y: 70 }, { x: 20, y: 70 },
   ],
 };
 
-const MAX_POINTS = 12;
-const MIN_POINTS = 3;
+const MAX_PTS = 12;
+const MIN_PTS = 3;
+
+const PREVIEW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="288" height="288"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="50%" style="stop-color:#a855f7"/><stop offset="100%" style="stop-color:#ec4899"/></linearGradient></defs><rect fill="url(#g)" width="288" height="288" rx="8"/></svg>`;
+
+const ALL_FW: Framework[] = ["css", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
 
 export default function ClipPath() {
+  const { t } = useI18n();
+
   const [shapeType, setShapeType] = useState<ShapeType>("polygon");
   const [points, setPoints] = useState<Point[]>(PRESETS.hexagon);
-
   const [circleR, setCircleR] = useState(40);
   const [circleCx, setCircleCx] = useState(50);
   const [circleCy, setCircleCy] = useState(50);
-
   const [ellipseRx, setEllipseRx] = useState(40);
   const [ellipseRy, setEllipseRy] = useState(30);
   const [ellipseCx, setEllipseCx] = useState(50);
   const [ellipseCy, setEllipseCy] = useState(50);
-
   const [insetT, setInsetT] = useState(10);
   const [insetR, setInsetR] = useState(10);
   const [insetB, setInsetB] = useState(10);
@@ -65,135 +59,68 @@ export default function ClipPath() {
   const [insetRound, setInsetRound] = useState(0);
 
   const applyPreset = useCallback((name: string) => {
-    if (PRESETS[name]) {
-      setPoints([...PRESETS[name]]);
-      setShapeType("polygon");
-    }
+    if (PRESETS[name]) { setPoints([...PRESETS[name]]); setShapeType("polygon"); }
   }, []);
 
   const updatePoint = (i: number, field: "x" | "y", val: number) => {
-    setPoints((prev) =>
-      prev.map((p, idx) =>
-        idx === i ? { ...p, [field]: Math.max(0, Math.min(100, val)) } : p
-      )
-    );
+    setPoints((prev) => prev.map((p, idx) => idx === i ? { ...p, [field]: Math.max(0, Math.min(100, val)) } : p));
   };
 
   const addPoint = () => {
-    if (points.length >= MAX_POINTS) return;
+    if (points.length >= MAX_PTS) return;
     const tail = points[points.length - 1] ?? { x: 50, y: 50 };
     setPoints([...points, { x: Math.min(100, tail.x + 8), y: Math.min(100, tail.y + 8) }]);
   };
 
   const removePoint = (i: number) => {
-    if (points.length <= MIN_POINTS) return;
+    if (points.length <= MIN_PTS) return;
     setPoints(points.filter((_, idx) => idx !== i));
   };
 
   const clipValue = (() => {
     switch (shapeType) {
-      case "circle":
-        return `circle(${circleR}% at ${circleCx}% ${circleCy}%)`;
-      case "ellipse":
-        return `ellipse(${ellipseRx}% ${ellipseRy}% at ${ellipseCx}% ${ellipseCy}%)`;
-      case "inset":
-        return `inset(${insetT}% ${insetR}% ${insetB}% ${insetL}% round ${insetRound}px)`;
-      default:
-        return `polygon(${points.map((p) => `${p.x}% ${p.y}%`).join(", ")})`;
+      case "circle": return `circle(${circleR}% at ${circleCx}% ${circleCy}%)`;
+      case "ellipse": return `ellipse(${ellipseRx}% ${ellipseRy}% at ${ellipseCx}% ${ellipseCy}%)`;
+      case "inset": return `inset(${insetT}% ${insetR}% ${insetB}% ${insetL}% round ${insetRound}px)`;
+      default: return `polygon(${points.map((p) => `${p.x}% ${p.y}%`).join(", ")})`;
     }
   })();
 
-  const cssCode = `clip-path: ${clipValue};`;
+  const codeMap = Object.fromEntries(ALL_FW.map((fw) => [fw, generateCode(fw, "clip-path", clipValue)])) as Record<Framework, string>;
 
-  const tailwindCode = `/* 方式一：在 global CSS 中定义 utility */
-.clip-shape {
-  clip-path: ${clipValue};
-}
-
-/* 方式二：Tailwind v4 @theme 扩展 */
-@theme {
-  --clip-shape: ${clipValue};
-}`;
-
-  const reactCode = `<div style={{ clipPath: "${clipValue}" }} />`;
-
-  const previewGradient = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="288" height="288">
-      <defs>
-        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#6366f1"/>
-          <stop offset="50%" style="stop-color:#a855f7"/>
-          <stop offset="100%" style="stop-color:#ec4899"/>
-        </linearGradient>
-      </defs>
-      <rect fill="url(#g)" width="288" height="288" rx="8"/>
-    </svg>`;
+  const shapeOpts = SHAPE_OPTIONS.map((v) => ({ value: v, label: v }));
 
   const controls = (
     <>
-      <SectionLabel label="Shape" />
-      <SegmentedControl
-        options={SHAPE_OPTIONS}
-        value={shapeType}
-        onChange={setShapeType}
-        columns={2}
-      />
+      <SectionLabel label={t.clipPath.shape} />
+      <SegmentedControl options={shapeOpts} value={shapeType} onChange={setShapeType} columns={2} />
 
       {shapeType === "polygon" && (
         <>
-          <SectionLabel label="Presets" />
+          <SectionLabel label={t.clipPath.presets} />
           <div className="flex flex-wrap gap-1">
             {Object.keys(PRESETS).map((name) => (
-              <button
-                key={name}
-                onClick={() => applyPreset(name)}
-                className="px-2.5 py-1 text-[11px] font-medium rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 dark:hover:border-indigo-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
-              >
+              <button key={name} type="button" onClick={() => applyPreset(name)}
+                className="px-2.5 py-1 text-[11px] font-medium rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 dark:hover:border-indigo-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all">
                 {name}
               </button>
             ))}
           </div>
 
-          <SectionLabel
-            label="Points"
-            badge={`${points.length}`}
-            action={{
-              label: "+ Add",
-              onClick: addPoint,
-              disabled: points.length >= MAX_POINTS,
-            }}
-          />
+          <SectionLabel label={t.clipPath.points} badge={`${points.length}`}
+            action={{ label: t.clipPath.add, onClick: addPoint, disabled: points.length >= MAX_PTS }} />
           <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
             {points.map((p, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <span className="text-[10px] text-zinc-400 font-mono w-5 shrink-0">
-                  {i + 1}
-                </span>
-                <input
-                  type="number"
-                  value={p.x}
-                  onChange={(e) => updatePoint(i, "x", Number(e.target.value))}
-                  className="w-14 px-2 py-1 text-[11px] font-mono border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:border-indigo-400 transition-colors bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
-                  placeholder="X"
-                  min={0}
-                  max={100}
-                />
-                <input
-                  type="number"
-                  value={p.y}
-                  onChange={(e) => updatePoint(i, "y", Number(e.target.value))}
-                  className="w-14 px-2 py-1 text-[11px] font-mono border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:border-indigo-400 transition-colors bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
-                  placeholder="Y"
-                  min={0}
-                  max={100}
-                />
+                <span className="text-[10px] text-zinc-400 font-mono w-5 shrink-0">{i + 1}</span>
+                <input type="number" value={p.x} onChange={(e) => updatePoint(i, "x", Number(e.target.value))}
+                  className="w-14 px-2 py-1 text-[11px] font-mono border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:border-indigo-400 transition-colors bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300" />
+                <input type="number" value={p.y} onChange={(e) => updatePoint(i, "y", Number(e.target.value))}
+                  className="w-14 px-2 py-1 text-[11px] font-mono border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:border-indigo-400 transition-colors bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300" />
                 <span className="text-[10px] text-zinc-400">%</span>
-                <button
-                  onClick={() => removePoint(i)}
-                  disabled={points.length <= MIN_POINTS}
-                  className="ml-auto text-[10px] text-rose-400 hover:text-rose-600 disabled:opacity-20 font-medium transition-colors"
-                >
-                  Del
+                <button type="button" onClick={() => removePoint(i)} disabled={points.length <= MIN_PTS}
+                  className="ml-auto text-[10px] text-rose-400 hover:text-rose-600 disabled:opacity-20 font-medium transition-colors">
+                  {t.clipPath.del}
                 </button>
               </div>
             ))}
@@ -208,7 +135,6 @@ export default function ClipPath() {
           <Slider label="Center Y" value={circleCy} onChange={setCircleCy} unit="%" />
         </div>
       )}
-
       {shapeType === "ellipse" && (
         <div className="space-y-3">
           <Slider label="Radius X" value={ellipseRx} onChange={setEllipseRx} max={50} unit="%" />
@@ -217,7 +143,6 @@ export default function ClipPath() {
           <Slider label="Center Y" value={ellipseCy} onChange={setEllipseCy} unit="%" />
         </div>
       )}
-
       {shapeType === "inset" && (
         <div className="space-y-3">
           <Slider label="Top" value={insetT} onChange={setInsetT} unit="%" />
@@ -231,27 +156,14 @@ export default function ClipPath() {
   );
 
   return (
-    <ToolLayout
-      title="Clip Path"
-      description="可视化编辑 CSS clip-path，支持 polygon / circle / ellipse / inset 四种形状"
-      controls={controls}
+    <ToolLayout title={t.clipPath.title} description={t.clipPath.description} controls={controls}
       preview={
         <div className="relative w-64 h-64">
-          <div
-            className="absolute inset-0 rounded-xl"
-            style={{
-              background: `url('data:image/svg+xml,${encodeURIComponent(previewGradient)}')`,
-              backgroundSize: "cover",
-              clipPath: clipValue,
-            }}
-          />
-          <div
-            className="absolute inset-0 rounded-xl border-2 border-dashed border-zinc-300/60 dark:border-zinc-600/40 pointer-events-none"
-            style={{ clipPath: clipValue }}
-          />
+          <div className="absolute inset-0 rounded-xl" style={{ background: `url('data:image/svg+xml,${encodeURIComponent(PREVIEW_SVG)}')`, backgroundSize: "cover", clipPath: clipValue }} />
+          <div className="absolute inset-0 rounded-xl border-2 border-dashed border-zinc-300/60 dark:border-zinc-600/40 pointer-events-none" style={{ clipPath: clipValue }} />
         </div>
       }
-      code={<CodePreview cssCode={cssCode} tailwindCode={tailwindCode} reactCode={reactCode} />}
+      code={<CodePreview codeMap={codeMap} />}
     />
   );
 }
