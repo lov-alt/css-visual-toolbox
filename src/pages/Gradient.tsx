@@ -6,6 +6,7 @@ import SegmentedControl from "../components/SegmentedControl";
 import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
+import ImageUpload from "../components/ImageUpload";
 
 type GradientType = "linear" | "radial" | "conic";
 
@@ -59,6 +60,7 @@ export default function Gradient() {
     }
   })();
 
+  const [bgImage, setBgImage] = useState<string | null>(null);
   const codeMap = Object.fromEntries(ALL_FW.map((fw) => [fw, generateCode(fw, "background", gradientCSS)])) as Record<Framework, string>;
 
   const controls = (
@@ -84,12 +86,20 @@ export default function Gradient() {
           </div>
         ))}
       </div>
+
+      <ImageUpload onImage={setBgImage} currentImage={bgImage} />
     </>
   );
 
   return (
     <ToolLayout title={t.gradient.title} description={t.gradient.description} controls={controls}
-      preview={<div className="w-64 h-64 rounded-2xl shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/5" style={{ background: gradientCSS }} />}
+      preview={
+        <div className="w-64 h-64 rounded-2xl shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/5 overflow-hidden" style={{
+          background: bgImage ? `url(${bgImage}) center/cover no-repeat` : undefined,
+        }}>
+          <div className="w-full h-full" style={{ background: bgImage ? gradientCSS.replace(")", ", 0.85)") : gradientCSS }} />
+        </div>
+      }
       code={<CodePreview codeMap={codeMap} />}
     />
   );

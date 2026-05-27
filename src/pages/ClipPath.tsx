@@ -163,6 +163,17 @@ export default function ClipPath() {
     <ToolLayout title={t.clipPath.title} description={t.clipPath.description} controls={controls}
       preview={
         <div className="relative w-64 h-64">
+          {/* Layer 1: full image (dimmed background) */}
+          <div className="absolute inset-0 rounded-xl" style={{
+            background: bgImage
+              ? `url(${bgImage}) center/cover no-repeat`
+              : `url('data:image/svg+xml,${encodeURIComponent(PREVIEW_SVG)}')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }} />
+          {/* Dark overlay on entire area */}
+          <div className="absolute inset-0 rounded-xl bg-black/35 dark:bg-black/55" />
+          {/* Layer 2: clipped image (spotlight — bright) */}
           <div className="absolute inset-0 rounded-xl" style={{
             background: bgImage
               ? `url(${bgImage}) center/cover no-repeat`
@@ -171,7 +182,8 @@ export default function ClipPath() {
             backgroundPosition: "center",
             clipPath: clipValue,
           }} />
-          <div className="absolute inset-0 rounded-xl border-2 border-dashed border-zinc-300/60 dark:border-zinc-600/40 pointer-events-none" style={{ clipPath: clipValue }} />
+          {/* Dashed outline */}
+          <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/70 dark:border-white/50 pointer-events-none" style={{ clipPath: clipValue }} />
         </div>
       }
       code={<CodePreview codeMap={codeMap} />}

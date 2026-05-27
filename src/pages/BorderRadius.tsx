@@ -6,6 +6,7 @@ import SegmentedControl from "../components/SegmentedControl";
 import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
+import ImageUpload from "../components/ImageUpload";
 
 type UnitMode = "px" | "%";
 type CornerMode = "symmetric" | "independent";
@@ -37,6 +38,7 @@ export default function BorderRadius() {
 
   const { tl, tr, br, bl } = corners;
   const isUniform = tl === tr && tr === br && br === bl;
+  const [bgImage, setBgImage] = useState<string | null>(null);
   const radiusValue = isUniform ? `${tl}${suffix}` : `${tl}${suffix} ${tr}${suffix} ${br}${suffix} ${bl}${suffix}`;
 
   const codeMap = Object.fromEntries(ALL_FW.map((fw) => [fw, generateCode(fw, "border-radius", radiusValue)])) as Record<Framework, string>;
@@ -76,6 +78,8 @@ export default function BorderRadius() {
           </div>
         ))}
       </div>
+
+      <ImageUpload onImage={setBgImage} currentImage={bgImage} />
     </>
   );
 
@@ -83,9 +87,16 @@ export default function BorderRadius() {
     <ToolLayout title={t.radius.title} description={t.radius.description} controls={controls}
       preview={
         <div className="flex items-center justify-center w-full py-4">
-          <div className="w-52 h-52 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/20 transition-all duration-300 flex items-center justify-center"
-            style={{ borderRadius: radiusValue }}>
-            <span className="text-white/70 text-xs font-mono tracking-tight">{radiusValue}</span>
+          <div className="w-52 h-52 shadow-xl shadow-zinc-300/30 dark:shadow-zinc-950/50 transition-all duration-300 flex items-center justify-center overflow-hidden"
+            style={{
+              borderRadius: radiusValue,
+              background: bgImage
+                ? `url(${bgImage}) center/cover no-repeat`
+                : "linear-gradient(135deg, #6366f1, #a855f7)",
+            }}>
+            {!bgImage && (
+              <span className="text-white/70 text-xs font-mono tracking-tight">{radiusValue}</span>
+            )}
           </div>
         </div>
       }

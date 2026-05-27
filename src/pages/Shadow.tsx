@@ -5,6 +5,7 @@ import NumberInput from "../components/NumberInput";
 import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
+import ImageUpload from "../components/ImageUpload";
 
 interface ShadowLayer {
   id: number; x: number; y: number; blur: number; spread: number;
@@ -88,6 +89,7 @@ export default function Shadow() {
     return `${l.inset ? "inset " : ""}${l.x}px ${l.y}px ${l.blur}px ${l.spread}px ${l.color}${alpha}`;
   }).join(",\n       ");
 
+  const [bgImage, setBgImage] = useState<string | null>(null);
   const shadowValue = formatShadow.replace(/\n\s+/g, " ");
   const codeMap = Object.fromEntries(ALL_FW.map((fw) => [fw, generateCode(fw, "box-shadow", shadowValue)])) as Record<Framework, string>;
 
@@ -156,6 +158,8 @@ export default function Shadow() {
           <input type="color" value={boxColor} onChange={(e) => { setBoxColor(e.target.value); setActiveNeumorph(null); }} className="w-7 h-7" />
         </div>
       </div>
+
+      <ImageUpload onImage={setBgImage} currentImage={bgImage} />
     </>
   );
 
@@ -163,10 +167,15 @@ export default function Shadow() {
     <ToolLayout title={t.shadow.title} description={t.shadow.description} controls={controls}
       preview={
         <div className="flex items-center justify-center p-8 rounded-2xl transition-colors" style={{ background: bgColor }}>
-          <div className="w-48 h-48 rounded-3xl flex items-center justify-center transition-all duration-300" style={{ background: boxColor, boxShadow: formatShadow }}>
-            <span className="text-sm font-medium select-none transition-colors" style={{ color: hasInset ? "#9ca3af" : "#6b7280" }}>
-              {statusLabel}
-            </span>
+          <div className="w-48 h-48 rounded-3xl flex items-center justify-center transition-all duration-300 overflow-hidden" style={{
+            background: bgImage ? `url(${bgImage}) center/cover no-repeat` : boxColor,
+            boxShadow: formatShadow,
+          }}>
+            {!bgImage && (
+              <span className="text-sm font-medium select-none transition-colors" style={{ color: hasInset ? "#9ca3af" : "#6b7280" }}>
+                {statusLabel}
+              </span>
+            )}
           </div>
         </div>
       }
