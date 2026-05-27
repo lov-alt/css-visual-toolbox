@@ -7,6 +7,9 @@ import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
 import ImageUpload from "../components/ImageUpload";
+import { placeholders } from "../components/placeholderImages";
+
+const PLACEHOLDER = `url('${placeholders.landscape}')`;
 
 type UnitMode = "px" | "%";
 type CornerMode = "symmetric" | "independent";
@@ -92,7 +95,7 @@ export default function BorderRadius() {
               borderRadius: radiusValue,
               background: bgImage
                 ? `url(${bgImage}) center/cover no-repeat`
-                : "linear-gradient(135deg, #6366f1, #a855f7)",
+                : `${PLACEHOLDER} center/cover no-repeat`,
             }}>
             {!bgImage && (
               <span className="text-white/70 text-xs font-mono tracking-tight">{radiusValue}</span>

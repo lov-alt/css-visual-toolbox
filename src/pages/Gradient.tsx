@@ -7,6 +7,9 @@ import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
 import ImageUpload from "../components/ImageUpload";
+import { placeholders } from "../components/placeholderImages";
+
+const PLACEHOLDER = `url('${placeholders.portrait}')`;
 
 type GradientType = "linear" | "radial" | "conic";
 
@@ -95,12 +98,10 @@ export default function Gradient() {
     <ToolLayout title={t.gradient.title} description={t.gradient.description} controls={controls}
       preview={
         <div className="w-64 h-64 rounded-2xl shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/5" style={{
-          backgroundImage: bgImage
-            ? `${gradientCSS}, url(${bgImage})`
-            : gradientCSS,
-          backgroundSize: bgImage ? "auto, cover" : undefined,
+          backgroundImage: `${gradientCSS}, ${bgImage ? `url(${bgImage})` : PLACEHOLDER}`,
+          backgroundSize: "auto, cover",
           backgroundPosition: "center",
-          backgroundBlendMode: bgImage ? "soft-light, normal" : undefined,
+          backgroundBlendMode: "soft-light, normal",
         }} />
       }
       code={<CodePreview codeMap={codeMap} />}

@@ -7,6 +7,9 @@ import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
 import ImageUpload from "../components/ImageUpload";
+import { placeholders } from "../components/placeholderImages";
+
+const PLACEHOLDER = `url('${placeholders.landscape}')`;
 
 type ShapeType = "polygon" | "circle" | "ellipse" | "inset";
 
@@ -36,8 +39,6 @@ const PRESETS: Record<string, Point[]> = {
 
 const MAX_PTS = 12;
 const MIN_PTS = 3;
-
-const PREVIEW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="288" height="288"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="50%" style="stop-color:#a855f7"/><stop offset="100%" style="stop-color:#ec4899"/></linearGradient></defs><rect fill="url(#g)" width="288" height="288" rx="8"/></svg>`;
 
 const ALL_FW: Framework[] = ["css", "tailwind", "react", "vue", "svelte", "swiftui", "flutter"];
 
@@ -167,7 +168,7 @@ export default function ClipPath() {
           <div className="absolute inset-0 rounded-xl" style={{
             background: bgImage
               ? `url(${bgImage}) center/cover no-repeat`
-              : `url('data:image/svg+xml,${encodeURIComponent(PREVIEW_SVG)}')`,
+              : PLACEHOLDER,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }} />
@@ -177,7 +178,7 @@ export default function ClipPath() {
           <div className="absolute inset-0 rounded-xl" style={{
             background: bgImage
               ? `url(${bgImage}) center/cover no-repeat`
-              : `url('data:image/svg+xml,${encodeURIComponent(PREVIEW_SVG)}')`,
+              : PLACEHOLDER,
             backgroundSize: "cover",
             backgroundPosition: "center",
             clipPath: clipValue,

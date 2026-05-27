@@ -6,6 +6,9 @@ import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
 import ImageUpload from "../components/ImageUpload";
+import { placeholders } from "../components/placeholderImages";
+
+const PLACEHOLDER = `url('${placeholders.texture}')`;
 
 interface ShadowLayer {
   id: number; x: number; y: number; blur: number; spread: number;
@@ -168,7 +171,7 @@ export default function Shadow() {
       preview={
         <div className="flex items-center justify-center p-8 rounded-2xl transition-colors" style={{ background: bgColor }}>
           <div className="w-48 h-48 rounded-3xl flex items-center justify-center transition-all duration-300 overflow-hidden" style={{
-            background: bgImage ? `url(${bgImage}) center/cover no-repeat` : boxColor,
+            background: bgImage ? `url(${bgImage}) center/cover no-repeat` : `${PLACEHOLDER} center/cover no-repeat`,
             boxShadow: formatShadow,
           }}>
             {!bgImage && (
