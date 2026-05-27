@@ -10,80 +10,129 @@ export const FRAMEWORKS: { key: Framework; label: string }[] = [
   { key: "flutter", label: "Flutter" },
 ];
 
+type GenFn = (prop: string, val: string) => string;
+
+/* ── Utility ─────────────────────────── */
+
+function toCamel(s: string): string {
+  return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
+function parseHexColor(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace("#", "");
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+function pickColors(val: string): string[] {
+  return val
+    .split(",")
+    .map((s) => s.trim().match(/(#[0-9a-fA-F]+)/)?.[1])
+    .filter((c): c is string => c != null);
+}
+
 /* ── CSS ─────────────────────────────── */
 
-function genCSS(property: string, value: string): string {
-  return `${property}: ${value};`;
-}
+const genCSS: GenFn = (prop, val) => `${prop}: ${val};`;
 
 /* ── Tailwind ─────────────────────────── */
 
-function genTailwind(property: string, value: string): string {
-  switch (property) {
-    case "border-radius": {
-      const v = value.replace(/px/g, "");
-      return `rounded-[${v}]`;
-    }
-    case "clip-path":
-      return `/* clip-path 无内建工具类，使用任意值 */\nclip-[${value.replace(/ /g, "_")}]`;
+const genTailwind: GenFn = (prop, val) => {
+  const esc = val.replace(/ /g, "_");
+  switch (prop) {
+    case "border-radius":
+      return `rounded-[${val.replace(/px/g, "")}]`;
     default:
-      return `/* ${property}: ${value}; */`;
+      return `[${prop}:${esc}]`;
   }
-}
+};
 
 /* ── React ───────────────────────────── */
 
-function genReact(property: string, value: string): string {
-  const camel = toCamel(property);
-  return `<div style={{ ${camel}: "${value}" }} />`;
-}
+const genReact: GenFn = (prop, val) => {
+  const camel = toCamel(prop);
+  return `style={{ ${camel}: "${val.replace(/"/g, '\\"')}" }}`;
+};
 
 /* ── Vue ─────────────────────────────── */
 
-function genVue(property: string, value: string): string {
-  const kebab = property;
-  return `<template>\n  <div :style="{ ${toCamel(kebab)}: '${value}' }" />\n</template>`;
-}
+const genVue: GenFn = (prop, val) => {
+  return `:style="{ ${toCamel(prop)}: '${val}' }"`;
+};
 
 /* ── Svelte ──────────────────────────── */
 
-function genSvelte(property: string, value: string): string {
-  return `<div style="${property}: ${value}" />`;
-}
+const genSvelte: GenFn = (prop, val) => `style="${prop}: ${val}"`;
 
 /* ── SwiftUI ─────────────────────────── */
 
-function genSwiftUI(property: string, value: string): string {
-  switch (property) {
-    case "border-radius":
-      return `RoundedRectangle(cornerRadius: ${parseFloat(value) || 0})`;
-    case "box-shadow":
-      return `// SwiftUI shadow:\n.shadow(radius: 10)`;
-    case "clip-path":
-      return `// SwiftUI clipShape:\n.clipShape(Circle())`;
+const genSwiftUI: GenFn = (prop, val) => {
+  switch (prop) {
+    case "border-radius": {
+      const v = parseFloat(val) || 0;
+      return `.cornerRadius(${v})`;
+    }
+    case "box-shadow": {
+      const m = val.match(/(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(#[0-9a-fA-F]+)/);
+      if (!m) return `.shadow(radius: 10)`;
+      const [, x, y, blur, , color] = m;
+      const { r, g, b } = parseHexColor(color);
+      return `.shadow(color: Color(red: ${(r / 255).toFixed(2)}, green: ${(g / 255).toFixed(2)}, blue: ${(b / 255).toFixed(2)}), radius: ${blur}, x: ${x}, y: ${y})`;
+    }
+    case "clip-path": {
+      if (val.includes("circle")) return `.clipShape(Circle())`;
+      if (val.includes("ellipse")) return `.clipShape(Ellipse())`;
+      return `.clipShape(RoundedRectangle(cornerRadius: 0))`;
+    }
+    case "background": {
+      const colors = pickColors(val);
+      if (colors.length < 2) return `LinearGradient(colors: [.blue, .purple], startPoint: .top, endPoint: .bottom)`;
+      const cs = colors.map((c) => `Color(hex: "${c}")`).join(", ");
+      return `LinearGradient(colors: [${cs}], startPoint: .topLeading, endPoint: .bottomTrailing)`;
+    }
     default:
-      return `// ${property}: ${value}`;
+      return `.${toCamel(prop)}(${JSON.stringify(val)})`;
   }
-}
+};
 
-/* ── Flutter ─────────────────────────── */
+/* ── Flutter ──────────────────────────── */
 
-function genFlutter(property: string, value: string): string {
-  switch (property) {
-    case "border-radius":
-      return `BorderRadius.circular(${parseFloat(value) || 0})`;
-    case "box-shadow":
-      return `BoxDecoration(\n  boxShadow: [\n    BoxShadow(\n      blurRadius: 10,\n      color: Colors.black26,\n    ),\n  ],\n)`;
-    case "clip-path":
-      return `ClipPath(\n  clipper: ShapeBorderClipper(\n    shape: RoundedRectangleBorder(),\n  ),\n)`;
+const genFlutter: GenFn = (prop, val) => {
+  switch (prop) {
+    case "border-radius": {
+      const v = parseFloat(val) || 16;
+      return `borderRadius: BorderRadius.circular(${v})`;
+    }
+    case "box-shadow": {
+      const m = val.match(/(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(#[0-9a-fA-F]+)/);
+      if (!m) return "BoxShadow(color: Colors.black26, blurRadius: 10)";
+      const [, x, y, blur, spread, color] = m;
+      return `boxShadow: [\n  BoxShadow(\n    color: Color(${color}),\n    offset: Offset(${x}, ${y}),\n    blurRadius: ${blur},\n    spreadRadius: ${spread},\n  ),\n]`;
+    }
+    case "clip-path": {
+      if (val.includes("circle") || val.includes("ellipse")) return "ClipOval(child: ...)";
+      return "ClipRRect(borderRadius: BorderRadius.circular(0), child: ...)";
+    }
+    case "background": {
+      const colors = pickColors(val);
+      if (colors.length < 2) return "LinearGradient(colors: [Colors.blue, Colors.purple])";
+      const cs = colors.map((c) => {
+        const h = c.replace("#", "");
+        return `Color(0xFF${h})`;
+      });
+      return `LinearGradient(\n  colors: [\n    ${cs.join(",\n    ")},\n  ],\n)`;
+    }
     default:
-      return `// ${property}: ${value}`;
+      return `/* ${prop} */\nContainer(decoration: BoxDecoration(...))`;
   }
-}
+};
 
 /* ── Aggregator ──────────────────────── */
 
-const generators: Record<Framework, (prop: string, val: string) => string> = {
+const generators: Record<Framework, GenFn> = {
   css: genCSS,
   tailwind: genTailwind,
   react: genReact,
@@ -95,10 +144,4 @@ const generators: Record<Framework, (prop: string, val: string) => string> = {
 
 export function generateCode(framework: Framework, property: string, value: string): string {
   return generators[framework](property, value);
-}
-
-/* ── Utility ─────────────────────────── */
-
-function toCamel(str: string): string {
-  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
