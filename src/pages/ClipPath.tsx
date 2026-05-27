@@ -6,6 +6,7 @@ import SegmentedControl from "../components/SegmentedControl";
 import SectionLabel from "../components/SectionLabel";
 import { useI18n } from "../i18n/index";
 import { generateCode, type Framework } from "../generators/index";
+import ImageUpload from "../components/ImageUpload";
 
 type ShapeType = "polygon" | "circle" | "ellipse" | "inset";
 
@@ -57,6 +58,7 @@ export default function ClipPath() {
   const [insetB, setInsetB] = useState(10);
   const [insetL, setInsetL] = useState(10);
   const [insetRound, setInsetRound] = useState(0);
+  const [bgImage, setBgImage] = useState<string | null>(null);
 
   const applyPreset = useCallback((name: string) => {
     if (PRESETS[name]) { setPoints([...PRESETS[name]]); setShapeType("polygon"); }
@@ -152,6 +154,8 @@ export default function ClipPath() {
           <Slider label="Round" value={insetRound} onChange={setInsetRound} max={100} unit="px" />
         </div>
       )}
+
+      <ImageUpload onImage={setBgImage} currentImage={bgImage} />
     </>
   );
 
@@ -159,7 +163,14 @@ export default function ClipPath() {
     <ToolLayout title={t.clipPath.title} description={t.clipPath.description} controls={controls}
       preview={
         <div className="relative w-64 h-64">
-          <div className="absolute inset-0 rounded-xl" style={{ background: `url('data:image/svg+xml,${encodeURIComponent(PREVIEW_SVG)}')`, backgroundSize: "cover", clipPath: clipValue }} />
+          <div className="absolute inset-0 rounded-xl" style={{
+            background: bgImage
+              ? `url(${bgImage}) center/cover no-repeat`
+              : `url('data:image/svg+xml,${encodeURIComponent(PREVIEW_SVG)}')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            clipPath: clipValue,
+          }} />
           <div className="absolute inset-0 rounded-xl border-2 border-dashed border-zinc-300/60 dark:border-zinc-600/40 pointer-events-none" style={{ clipPath: clipValue }} />
         </div>
       }
