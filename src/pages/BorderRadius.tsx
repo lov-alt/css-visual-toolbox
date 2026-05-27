@@ -1,6 +1,9 @@
 import { useState } from "react";
 import ToolLayout from "../components/ToolLayout";
 import CodePreview from "../components/CodePreview";
+import Slider from "../components/Slider";
+import SegmentedControl from "../components/SegmentedControl";
+import SectionLabel from "../components/SectionLabel";
 
 type UnitMode = "px" | "%";
 type CornerMode = "symmetric" | "independent";
@@ -12,16 +15,31 @@ interface Corners {
   bl: number;
 }
 
+const UNIT_OPTIONS: { value: UnitMode; label: string }[] = [
+  { value: "px", label: "px" },
+  { value: "%", label: "%" },
+];
+
+const MODE_OPTIONS: { value: CornerMode; label: string }[] = [
+  { value: "symmetric", label: "Symmetric" },
+  { value: "independent", label: "Independent" },
+];
+
+const CORNER_KEYS: { key: keyof Corners; label: string }[] = [
+  { key: "tl", label: "Top Left" },
+  { key: "tr", label: "Top Right" },
+  { key: "br", label: "Bottom Right" },
+  { key: "bl", label: "Bottom Left" },
+];
+
 export default function BorderRadius() {
-  const [unitMode, setUnitMode] = useState<UnitMode>("px");
-  const [cornerMode, setCornerMode] = useState<CornerMode>("symmetric");
+  const [unit, setUnit] = useState<UnitMode>("px");
+  const [mode, setMode] = useState<CornerMode>("symmetric");
   const [all, setAll] = useState(24);
-  const [corners, setCorners] = useState<Corners>({
-    tl: 24,
-    tr: 24,
-    br: 24,
-    bl: 24,
-  });
+  const [corners, setCorners] = useState<Corners>({ tl: 24, tr: 24, br: 24, bl: 24 });
+
+  const suffix = unit === "%" ? "%" : "px";
+  const max = unit === "%" ? 50 : 200;
 
   const setAllValue = (v: number) => {
     setAll(v);
@@ -29,146 +47,71 @@ export default function BorderRadius() {
   };
 
   const setCorner = (c: keyof Corners, v: number) => {
-    const next = { ...corners, [c]: v };
-    setCorners(next);
-    // sync all if symmetric
-    if (cornerMode === "symmetric") {
-      setAll(v);
-    }
+    setCorners((prev) => ({ ...prev, [c]: v }));
+    if (mode === "symmetric") setAll(v);
   };
 
-  const switchCornerMode = (mode: CornerMode) => {
-    setCornerMode(mode);
-    if (mode === "symmetric") {
-      setCorners({ tl: all, tr: all, br: all, bl: all });
-    }
+  const switchMode = (m: CornerMode) => {
+    setMode(m);
+    if (m === "symmetric") setCorners({ tl: all, tr: all, br: all, bl: all });
   };
 
-  const unitSuffix = unitMode === "%" ? "%" : "px";
-  const max = unitMode === "%" ? 50 : 200;
-
-  const radiusCSS = (() => {
-    const { tl, tr, br, bl } = corners;
-    if (tl === tr && tr === br && br === bl) {
-      return `${tl}${unitSuffix}`;
-    }
-    return `${tl}${unitSuffix} ${tr}${unitSuffix} ${br}${unitSuffix} ${bl}${unitSuffix}`;
-  })();
+  const { tl, tr, br, bl } = corners;
+  const isUniform = tl === tr && tr === br && br === bl;
+  const radiusCSS = isUniform
+    ? `${tl}${suffix}`
+    : `${tl}${suffix} ${tr}${suffix} ${br}${suffix} ${bl}${suffix}`;
 
   const cssCode = `border-radius: ${radiusCSS};`;
 
-  const tailwindCode = `/* Tailwind 圆角工具类 */
-/* symmetric: rounded-[${all}${unitSuffix}] */
-/* independent: rounded-tl-[${corners.tl}${unitSuffix}] rounded-tr-[${corners.tr}${unitSuffix}] rounded-br-[${corners.br}${unitSuffix}] rounded-bl-[${corners.bl}${unitSuffix}] */`;
+  const tailwindCode = isUniform
+    ? `<div className="rounded-[${all}${suffix}]" />`
+    : `<div className="rounded-tl-[${tl}${suffix}] rounded-tr-[${tr}${suffix}] rounded-br-[${br}${suffix}] rounded-bl-[${bl}${suffix}]" />`;
 
-  const reactCode = `<div style={{
-  borderRadius: "${radiusCSS}",
-}} />`;
+  const reactCode = `<div style={{ borderRadius: "${radiusCSS}" }} />`;
 
   const controls = (
     <>
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-2">Unit</label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {(["px", "%"] as UnitMode[]).map((u) => (
-            <button
-              key={u}
-              onClick={() => setUnitMode(u)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                unitMode === u
-                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                  : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
-              }`}
-            >
-              {u}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionLabel label="Unit" />
+      <SegmentedControl options={UNIT_OPTIONS} value={unit} onChange={setUnit} columns={2} />
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-2">Mode</label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {([
-            { value: "symmetric" as CornerMode, label: "Symmetric" },
-            { value: "independent" as CornerMode, label: "Independent" },
-          ]).map((m) => (
-            <button
-              key={m.value}
-              onClick={() => switchCornerMode(m.value)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                cornerMode === m.value
-                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                  : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionLabel label="Mode" />
+      <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={switchMode} columns={2} />
 
-      {cornerMode === "symmetric" ? (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-zinc-600">All Corners</label>
-            <span className="text-xs text-zinc-400">
-              {all}
-              {unitSuffix}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={max}
-            value={all}
-            onChange={(e) => setAllValue(Number(e.target.value))}
-            className="w-full h-1.5 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-indigo-500"
-          />
+      {mode === "symmetric" ? (
+        <>
+          <Slider label="All Corners" value={all} onChange={setAllValue} max={max} unit={suffix} />
           <input
             type="number"
             value={all}
-            onChange={(e) => setAllValue(Math.max(0, Math.min(max, Number(e.target.value))))}
-            className="mt-2 w-full px-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:border-indigo-400"
+            onChange={(e) => setAllValue(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
+            className="w-full px-3 py-2 text-sm font-mono border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-900 transition-all bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
             min={0}
             max={max}
           />
-        </div>
+        </>
       ) : (
         <div className="space-y-3">
-          {([
-            { key: "tl" as keyof Corners, label: "Top Left" },
-            { key: "tr" as keyof Corners, label: "Top Right" },
-            { key: "br" as keyof Corners, label: "Bottom Right" },
-            { key: "bl" as keyof Corners, label: "Bottom Left" },
-          ]).map(({ key, label }) => (
-            <div key={key}>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-zinc-600">{label}</label>
-                <span className="text-xs text-zinc-400">
-                  {corners[key]}
-                  {unitSuffix}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={max}
-                value={corners[key]}
-                onChange={(e) => setCorner(key, Number(e.target.value))}
-                className="w-full h-1.5 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-indigo-500"
-              />
-            </div>
+          {CORNER_KEYS.map(({ key, label }) => (
+            <Slider
+              key={key}
+              label={label}
+              value={corners[key]}
+              onChange={(v) => setCorner(key, v)}
+              max={max}
+              unit={suffix}
+            />
           ))}
         </div>
       )}
 
-      {/* Visual corner diagram */}
-      <div className="grid grid-cols-2 gap-2 text-xs text-zinc-500">
-        <div>↖ TL: {corners.tl}{unitSuffix}</div>
-        <div>↗ TR: {corners.tr}{unitSuffix}</div>
-        <div>↙ BL: {corners.bl}{unitSuffix}</div>
-        <div>↘ BR: {corners.br}{unitSuffix}</div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono text-zinc-400 dark:text-zinc-500 pt-1">
+        {CORNER_KEYS.map(({ key, label }) => (
+          <div key={key} className="flex justify-between">
+            <span>{label}</span>
+            <span className="tabular-nums">{corners[key]}{suffix}</span>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -176,21 +119,19 @@ export default function BorderRadius() {
   return (
     <ToolLayout
       title="Border Radius"
-      description="圆角可视化调节，支持对称/独立四角控制 + px/% 单位切换"
+      description="圆角可视化调节，支持对称 / 独立四角控制 + px / % 单位切换"
       controls={controls}
       preview={
-        <div className="flex items-center justify-center w-full">
+        <div className="flex items-center justify-center w-full py-4">
           <div
-            className="w-56 h-56 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg transition-all flex items-center justify-center"
+            className="w-52 h-52 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/20 transition-all duration-300 flex items-center justify-center"
             style={{ borderRadius: radiusCSS }}
           >
-            <span className="text-white/80 text-xs font-mono">{radiusCSS}</span>
+            <span className="text-white/70 text-xs font-mono tracking-tight">{radiusCSS}</span>
           </div>
         </div>
       }
-      code={
-        <CodePreview cssCode={cssCode} tailwindCode={tailwindCode} reactCode={reactCode} />
-      }
+      code={<CodePreview cssCode={cssCode} tailwindCode={tailwindCode} reactCode={reactCode} />}
     />
   );
 }

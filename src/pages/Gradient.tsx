@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ToolLayout from "../components/ToolLayout";
 import CodePreview from "../components/CodePreview";
+import Slider from "../components/Slider";
+import SegmentedControl from "../components/SegmentedControl";
+import SectionLabel from "../components/SectionLabel";
 
 type GradientType = "linear" | "radial" | "conic";
 
@@ -10,48 +13,56 @@ interface ColorStop {
   position: number;
 }
 
-let stopId = 0;
-function nextId() {
-  return ++stopId;
-}
+const TYPE_OPTIONS: { value: GradientType; label: string }[] = [
+  { value: "linear", label: "Linear" },
+  { value: "radial", label: "Radial" },
+  { value: "conic", label: "Conic" },
+];
+
+const MAX_STOPS = 8;
+const MIN_STOPS = 2;
+
+const DEFAULT_STOPS: ColorStop[] = [
+  { id: 1, color: "#6366f1", position: 0 },
+  { id: 2, color: "#ec4899", position: 100 },
+];
 
 export default function Gradient() {
+  const idRef = useRef(3);
   const [gradType, setGradType] = useState<GradientType>("linear");
   const [angle, setAngle] = useState(135);
-  const [stops, setStops] = useState<ColorStop[]>([
-    { id: nextId(), color: "#6366f1", position: 0 },
-    { id: nextId(), color: "#ec4899", position: 100 },
-  ]);
+  const [stops, setStops] = useState<ColorStop[]>(DEFAULT_STOPS);
 
   const updateStop = (id: number, field: keyof ColorStop, value: string | number) => {
-    setStops(stops.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+    setStops((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
   };
 
   const addStop = () => {
-    if (stops.length >= 8) return;
-    const mid = stops.length === 2
-      ? 50
-      : Math.round(
-          (stops[Math.floor(stops.length / 2)].position +
-            stops[Math.floor(stops.length / 2) + 1].position) /
-            2
-        );
+    if (stops.length >= MAX_STOPS) return;
+    const sorted = [...stops].sort((a, b) => a.position - b.position);
+    let mid = 50;
+    if (sorted.length >= 2) {
+      const mi = Math.floor(sorted.length / 2);
+      mid = Math.round((sorted[mi - 1].position + sorted[mi].position) / 2);
+    }
     setStops(
-      [...stops, { id: nextId(), color: "#a855f7", position: mid }].sort(
+      [...stops, { id: idRef.current++, color: "#a855f7", position: mid }].sort(
         (a, b) => a.position - b.position
       )
     );
   };
 
   const removeStop = (id: number) => {
-    if (stops.length <= 2) return;
-    setStops(stops.filter((s) => s.id !== id));
+    if (stops.length <= MIN_STOPS) return;
+    setStops((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+  const sorted = [...stops].sort((a, b) => a.position - b.position);
+  const stopStr = sorted.map((s) => `${s.color} ${s.position}%`).join(", ");
 
   const gradientCSS = (() => {
-    const stopStr = sortedStops.map((s) => `${s.color} ${s.position}%`).join(", ");
     switch (gradType) {
       case "linear":
         return `linear-gradient(${angle}deg, ${stopStr})`;
@@ -64,101 +75,59 @@ export default function Gradient() {
 
   const cssCode = `background: ${gradientCSS};`;
 
-  const tailwindCode = `/* 渐变在 Tailwind 中通常用于 bg  */
-/* 可以在 tailwind.config 中扩展，或使用任意值: */
-
+  const tailwindCode = `/* Tailwind 任意值（将空格替换为下划线） */
 <div className="bg-[${gradientCSS.replace(/ /g, "_")}]" />
 
-/* 或自定义 utility:
-.bg-custom-gradient {
+/* 或定义为 utility: */
+.bg-custom {
   background: ${gradientCSS};
-} */`;
+}`;
 
-  const reactCode = `<div style={{
-  background: "${gradientCSS}",
-}} />`;
+  const reactCode = `<div style={{ background: "${gradientCSS}" }} />`;
 
   const controls = (
     <>
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-2">Type</label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {(["linear", "radial", "conic"] as GradientType[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setGradType(t)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                gradType === t
-                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                  : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionLabel label="Type" />
+      <SegmentedControl options={TYPE_OPTIONS} value={gradType} onChange={setGradType} columns={3} />
 
       {(gradType === "linear" || gradType === "conic") && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-zinc-600">Angle</label>
-            <span className="text-xs text-zinc-400">{angle}deg</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={360}
-            value={angle}
-            onChange={(e) => setAngle(Number(e.target.value))}
-            className="w-full h-1.5 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-indigo-500"
-          />
-        </div>
+        <Slider label="Angle" value={angle} onChange={setAngle} max={360} unit="deg" />
       )}
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-zinc-700">
-            Color Stops ({stops.length})
-          </label>
-          <button
-            onClick={addStop}
-            disabled={stops.length >= 8}
-            className="px-2 py-0.5 text-xs rounded border border-zinc-200 hover:bg-zinc-100 disabled:opacity-30"
-          >
-            + Add
-          </button>
-        </div>
-        <div className="space-y-2">
-          {sortedStops.map((s) => (
-            <div key={s.id} className="flex items-center gap-2">
-              <input
-                type="color"
-                value={s.color}
-                onChange={(e) => updateStop(s.id, "color", e.target.value)}
-                className="w-8 h-8 rounded border border-zinc-200 cursor-pointer p-0.5"
-              />
-              <input
-                type="number"
-                value={s.position}
-                onChange={(e) =>
-                  updateStop(s.id, "position", Math.max(0, Math.min(100, Number(e.target.value))))
-                }
-                className="w-14 px-2 py-1 text-xs border border-zinc-200 rounded focus:outline-none focus:border-indigo-400"
-                min={0}
-                max={100}
-              />
-              <span className="text-xs text-zinc-400">%</span>
-              <button
-                onClick={() => removeStop(s.id)}
-                disabled={stops.length <= 2}
-                className="text-xs text-rose-400 hover:text-rose-600 disabled:opacity-30 ml-auto"
-              >
-                Del
-              </button>
-            </div>
-          ))}
-        </div>
+      <SectionLabel
+        label="Color Stops"
+        badge={`${stops.length}`}
+        action={{ label: "+ Add", onClick: addStop, disabled: stops.length >= MAX_STOPS }}
+      />
+      <div className="space-y-2">
+        {sorted.map((s) => (
+          <div key={s.id} className="flex items-center gap-2">
+            <input
+              type="color"
+              value={s.color}
+              onChange={(e) => updateStop(s.id, "color", e.target.value)}
+              className="w-8 h-8 shrink-0"
+            />
+            <input
+              type="number"
+              value={s.position}
+              onChange={(e) =>
+                updateStop(s.id, "position", Math.max(0, Math.min(100, Number(e.target.value))))
+              }
+              className="w-14 px-2 py-1.5 text-[11px] font-mono border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-400 transition-colors bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
+              min={0}
+              max={100}
+            />
+            <span className="text-[11px] text-zinc-400">%</span>
+            <button
+              onClick={() => removeStop(s.id)}
+              disabled={stops.length <= MIN_STOPS}
+              className="ml-auto text-[10px] text-rose-400 hover:text-rose-600 disabled:opacity-20 font-medium transition-colors"
+            >
+              Del
+            </button>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -166,17 +135,15 @@ export default function Gradient() {
   return (
     <ToolLayout
       title="Gradient"
-      description="线性 / 径向 / 锥形渐变编辑器，拖拽色标调节，实时预览+多格式代码导出"
+      description="线性 / 径向 / 锥形渐变编辑器，拖拽色标调节，实时预览 + 多格式代码导出"
       controls={controls}
       preview={
         <div
-          className="w-72 h-72 rounded-xl shadow-md"
+          className="w-64 h-64 rounded-2xl shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/5"
           style={{ background: gradientCSS }}
         />
       }
-      code={
-        <CodePreview cssCode={cssCode} tailwindCode={tailwindCode} reactCode={reactCode} />
-      }
+      code={<CodePreview cssCode={cssCode} tailwindCode={tailwindCode} reactCode={reactCode} />}
     />
   );
 }
