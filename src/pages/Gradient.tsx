@@ -94,11 +94,14 @@ export default function Gradient() {
   return (
     <ToolLayout title={t.gradient.title} description={t.gradient.description} controls={controls}
       preview={
-        <div className="w-64 h-64 rounded-2xl shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/5 overflow-hidden" style={{
-          background: bgImage ? `url(${bgImage}) center/cover no-repeat` : undefined,
-        }}>
-          <div className="w-full h-full" style={{ background: bgImage ? gradientCSS.replace(")", ", 0.85)") : gradientCSS }} />
-        </div>
+        <div className="w-64 h-64 rounded-2xl shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/5" style={{
+          backgroundImage: bgImage
+            ? `${gradientCSS}, url(${bgImage})`
+            : gradientCSS,
+          backgroundSize: bgImage ? "auto, cover" : undefined,
+          backgroundPosition: "center",
+          backgroundBlendMode: bgImage ? "soft-light, normal" : undefined,
+        }} />
       }
       code={<CodePreview codeMap={codeMap} />}
     />
