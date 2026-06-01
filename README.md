@@ -241,4 +241,4 @@ React 19 · TypeScript · Vite · Tailwind CSS v4 · React Router · Figma Plugi
 
 ## License
 
-MIT — 自由使用、修改、分发。
+[MIT](./LICENSE) © 2026 lov-alt — 自由使用、修改、分发。本软件按"原样"提供，不作任何明示或默示的保证。
