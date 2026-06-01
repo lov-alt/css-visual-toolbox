@@ -233,6 +233,18 @@ npm run build        # 产出 dist/
 
 ---
 
+## Ecosystem
+
+CSS Visual Toolbox is part of a five-tool open-source suite:
+
+| Tool | What it does |
+|---|---|
+| **[Design Token Studio](https://github.com/lov-alt/design-token-studio)** | Define design tokens — colors, typography, spacing — with WCAG checker and 6 export formats |
+| **CSS Visual Toolbox** ← you are here | Visually edit CSS properties (clip-path, gradients, shadows, border-radius). 8-framework export |
+| **[Typography Lab](https://github.com/lov-alt/typography-lab)** | Content-driven layout generator. 14 archetypes, 8 typographic traditions |
+| **[Motion Token Studio](https://github.com/lov-alt/motion-token-studio)** | Design motion tokens — cubic-bezier editor, duration scale, 12 presets, 5 export formats |
+| **[Sound Garden](https://github.com/lov-alt/sound-garden)** | Real-time microphone → generative visual landscape (trees, waves, particles, circles) |
+
 ## Tech Stack
 
 React 19 · TypeScript · Vite · Tailwind CSS v4 · React Router · Figma Plugin API · GitHub Actions
