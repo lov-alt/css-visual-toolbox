@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createHashRouter, RouterProvider } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import { I18nProvider } from "./i18n/index";
 import "./index.css";
@@ -9,7 +9,7 @@ import Gradient from "./pages/Gradient";
 import Shadow from "./pages/Shadow";
 import BorderRadius from "./pages/BorderRadius";
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: "/",
     element: <App />,
@@ -24,7 +24,5 @@ const router = createBrowserRouter([
 ]);
 
 createRoot(document.getElementById("root")!).render(
-  <I18nProvider>
-    <RouterProvider router={router} />
-  </I18nProvider>
+  <I18nProvider><RouterProvider router={router} /></I18nProvider>
 );
